@@ -1,0 +1,144 @@
+name: Build Unsigned IPA (Sourceios Dynamic)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      run: |
+        sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+        xcodebuild -version
+
+    # 1. Instala o XcodeGen (ferramenta que vai ler todas as pastas e gerar o projeto)
+    - name: Install XcodeGen
+      run: |
+        brew install xcodegen
+
+    # 2. Cria os arquivos de entrada (main e AppDelegate) se não existirem
+    - name: Create Entry Point (main.m & AppDelegate)
+      run: |
+        if [ ! -f main.m ]; then
+          cat > main.m << 'EOF'
+        #import <UIKit/UIKit.h>
+        #import "AppDelegate.h"
+
+        int main(int argc, char * argv[]) {
+            @autoreleasepool {
+                return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+            }
+        }
+        EOF
+        fi
+
+        if [ ! -f AppDelegate.h ]; then
+          cat > AppDelegate.h << 'EOF'
+        #import <UIKit/UIKit.h>
+
+        @interface AppDelegate : UIResponder <UIApplicationDelegate>
+        @property (strong, nonatomic) UIWindow *window;
+        @end
+        EOF
+        fi
+
+        if [ ! -f AppDelegate.m ]; then
+          cat > AppDelegate.m << 'EOF'
+        #import "AppDelegate.h"
+        #import "RootViewController.h"
+
+        @implementation AppDelegate
+
+        - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+            self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+            RootViewController *root = [[RootViewController alloc] init];
+            UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:root];
+            self.window.rootViewController = nav;
+            [self.window makeKeyAndVisible];
+            return YES;
+        }
+
+        @end
+        EOF
+        fi
+
+    # 3. Gera o projeto dinamicamente lendo TODAS as pastas e headers
+    - name: Generate Xcode Project (Dynamic)
+      run: |
+        # Descobre dinamicamente todas as pastas que contêm arquivos .h para não quebrar os #imports
+        HEADER_PATHS=$(find . -name "*.h" -not -path "./.git/*" -exec dirname {} \; | sort -u | tr '\n' ' ')
+        echo "Caminhos de headers encontrados: $HEADER_PATHS"
+
+        # Cria o arquivo de configuração do XcodeGen
+        cat > project.yml << EOF
+        name: Sourceios
+        options:
+          bundleIdPrefix: com.sourceios
+          deploymentTarget:
+            iOS: "14.0"
+        settings:
+          base:
+            CLANG_ENABLE_OBJC_ARC: YES
+            CLANG_ENABLE_OBJC_WEAK: YES
+            GENERATE_INFOPLIST_FILE: YES
+            INFOPLIST_KEY_UIApplicationSceneManifest_Generation: NO
+            INFOPLIST_KEY_UILaunchScreen_Generation: YES
+            OTHER_LDFLAGS: "-framework Security -framework UIKit -framework IOKit -framework CoreGraphics"
+            HEADER_SEARCH_PATHS: "\$(SRCROOT) $HEADER_PATHS"
+        targets:
+          Sourceios:
+            type: application
+            platform: iOS
+            sources:
+              - path: .
+                excludes:
+                  - ".github/**"
+                  - ".git/**"
+            settings:
+              base:
+                PRODUCT_BUNDLE_IDENTIFIER: com.sourceios.app
+        EOF
+
+        # Gera o .xcodeproj
+        xcodegen generate
+
+    # 4. Compila o .ipa
+    - name: Build and Archive (Unsigned)
+      run: |
+        xcodebuild archive \
+          -project Sourceios.xcodeproj \
+          -scheme Sourceios \
+          -sdk iphoneos \
+          -configuration Release \
+          -archivePath $PWD/build/Sourceios.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_ENTITLEMENTS="" \
+          CLANG_ENABLE_OBJC_ARC=YES \
+          CLANG_ENABLE_OBJC_WEAK=YES \
+          ALWAYS_SEARCH_USER_PATHS=NO \
+          OTHER_LDFLAGS="-framework Security -framework UIKit -framework IOKit -framework CoreGraphics" \
+          GENERATE_INFOPLIST_FILE=YES \
+          INFOPLIST_KEY_UIApplicationSceneManifest_Generation=NO \
+          PRODUCT_BUNDLE_IDENTIFIER="com.sourceios.app" \
+          IPHONEOS_DEPLOYMENT_TARGET="14.0"
+
+    - name: Create Unsigned IPA
+      run: |
+        mkdir -p Payload
+        cp -R build/Sourceios.xcarchive/Products/Applications/Sourceios.app Payload/
+        zip -r Sourceios-unsigned.ipa Payload
+
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sourceios-unsigned-ipa
+        path: Sourceios-unsigned.ipa
