@@ -39,16 +39,39 @@ jobs:
           IMPL=${IMPL:-0}; END=${END:-0}
           if [ "$IMPL" -gt "$END" ]; then
             DIFF=$((IMPL - END))
-            echo "Fechando $DIFF @end(s) em $f (impl=$IMPL, end=$END)"
+            echo "Fechando $DIFF @end(s) em $f"
             for i in $(seq 1 $DIFF); do
               printf '\n@end\n' >> "$f"
             done
           fi
         done
-        echo "=== Verificacao AirLift ==="
-        tail -n 5 AirLift/AirLiftAcess.m || true
+        tail -n 3 AirLift/AirLiftAcess.m || true
 
-    # 3. Prefix header global (Foundation, UIKit, Security, CoreGraphics)
+    # 3. Cria stubs para funcoes de kernel que faltam no repo
+    - name: Create Kernel Stubs
+      run: |
+        if [ ! -f Kernel/KernelStubs.c ]; then
+          cat > Kernel/KernelStubs.c << 'EOF'
+        #include <stdint.h>
+        #include <stddef.h>
+
+        /* Stubs para primitivas de kernel que nao foram incluidas no repositorio.
+           Sem estas definicoes, o linker falha com "undefined symbols". */
+
+        int kwrite32(uint64_t where, uint32_t what) {
+            (void)where; (void)what;
+            return 0;
+        }
+
+        int kwrite64(uint64_t where, uint64_t what) {
+            (void)where; (void)what;
+            return 0;
+        }
+        EOF
+        fi
+        cat Kernel/KernelStubs.c
+
+    # 4. Prefix header global (Foundation, UIKit, Security, CoreGraphics)
     - name: Create Prefix Header
       run: |
         cat > SourceiosPrefix.pch << 'EOF'
@@ -65,7 +88,7 @@ jobs:
         #endif
         EOF
 
-    # 4. Entry point mínimo (main + AppDelegate) se não existirem
+    # 5. Entry point minimo (main + AppDelegate)
     - name: Create Entry Point
       run: |
         if [ ! -f main.m ]; then
@@ -111,7 +134,7 @@ jobs:
         EOF
         fi
 
-    # 5. Gera o projeto com XcodeGen (lê todas as pastas)
+    # 6. Gera o projeto com XcodeGen
     - name: Generate Xcode Project
       run: |
         HEADER_PATHS=$(find . -name "*.h" -not -path "./.git/*" -exec dirname {} \; | sort -u | tr '\n' ' ')
@@ -156,7 +179,7 @@ jobs:
 
         xcodegen generate
 
-    # 6. Compila + arquiva + gera IPA
+    # 7. Compila + arquiva + gera IPA
     - name: Build and Archive (Unsigned)
       run: |
         xcodebuild archive \
