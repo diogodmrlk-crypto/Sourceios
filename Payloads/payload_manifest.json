@@ -1,0 +1,170 @@
+{
+  "application": "Dash iOS (External DASH 2.0)",
+  "bundle_identifier": "com.apple.mobile.MobileHouseArrest",
+  "version": "1.10",
+  "build": "10",
+  "minimum_os_version": "15.0",
+  "target_games": [
+    {
+      "name": "Free Fire Normal",
+      "bundle_id": "com.dts.freefireth"
+    },
+    {
+      "name": "Free Fire MAX",
+      "bundle_id": "com.dts.freefiremax"
+    }
+  ],
+  "cdn_base_url": "https://cdn.dashproxy.xyz/ipa/",
+  "discord": "https://discord.gg/dashh",
+  "payload_categories": {
+    "FPS_Unlock": [
+      {
+        "name": "120/144 FPS Plist",
+        "url": "https://cdn.dashproxy.xyz/ipa/FPS/com.dts.freefireth.plist",
+        "sandbox_target": "Library/Preferences/com.dts.freefireth.plist",
+        "backup_file": "_fps_plist.bak"
+      }
+    ],
+    "Injector_1_Apenas_HS": [
+      {
+        "name": "HS ALTO (Acima da Cabeça)",
+        "url": "https://cdn.dashproxy.xyz/ipa/injetor1/hs-alto/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "sandbox_target": "Library/Caches/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "backup_file": "_cache_res.bak"
+      },
+      {
+        "name": "HS ALTO + Pescoço",
+        "url": "https://cdn.dashproxy.xyz/ipa/injetor1/hs-alto-pescoco/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "sandbox_target": "Library/Caches/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "backup_file": "_cache_res.bak"
+      },
+      {
+        "name": "HS Pescoço",
+        "url": "https://cdn.dashproxy.xyz/ipa/injetor1/hs-pescoco/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "sandbox_target": "Library/Caches/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "backup_file": "_cache_res.bak"
+      },
+      {
+        "name": "HS Caveira",
+        "url": "https://cdn.dashproxy.xyz/ipa/injetor1/hs-caveira/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "sandbox_target": "Library/Caches/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "backup_file": "_cache_res.bak"
+      },
+      {
+        "name": "HS Peito",
+        "url": "https://cdn.dashproxy.xyz/ipa/injetor1/hs-peito/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "sandbox_target": "Library/Caches/cache_res.GkLlYqzsX4AtTdE55sDMRh9sJOI~3D",
+        "backup_file": "_cache_res.bak"
+      }
+    ],
+    "Injector_2_HS_e_Antena": [
+      {
+        "name": "DRAG + ANTENA",
+        "url": "https://cdn.dashproxy.xyz/ipa/HS%20E%20ANTENA/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "HS Drag",
+        "url": "https://cdn.dashproxy.xyz/ipa/HS/hs-drag/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "HS Chest",
+        "url": "https://cdn.dashproxy.xyz/ipa/HS/hs-chest/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "HS Body",
+        "url": "https://cdn.dashproxy.xyz/ipa/HS/body/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "Bala Mágica",
+        "url": "https://cdn.dashproxy.xyz/ipa/HS/magic/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "Antena Chest Drag",
+        "url": "https://cdn.dashproxy.xyz/ipa/Antena/chest-drag/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "Antena Chest",
+        "url": "https://cdn.dashproxy.xyz/ipa/Antena/chest/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "Antena Body",
+        "url": "https://cdn.dashproxy.xyz/ipa/Antena/body/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      },
+      {
+        "name": "Antena Magic",
+        "url": "https://cdn.dashproxy.xyz/ipa/Antena/magic/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "sandbox_target": "Library/Caches/assetindexer.U6Zffc4YIR3DslNj3cXvYGAqz58~3D",
+        "backup_file": "_assetindexer.bak"
+      }
+    ],
+    "Assembly_CSharp_Patches": [
+      {
+        "name": "Aimbot + ESP Line / Box / Health",
+        "patch_url": "https://cdn.dashproxy.xyz/ipa/assembly/Aimbot/Assembly-CSharp-patch.bytes",
+        "config_url": "https://cdn.dashproxy.xyz/ipa/assembly/Aimbot/localConfig.json",
+        "sandbox_target": "Documents/Assembly-CSharp-patch.bytes"
+      },
+      {
+        "name": "Silent Aim + ESP",
+        "patch_url": "https://cdn.dashproxy.xyz/ipa/assembly/Silent/Assembly-CSharp-patch.bytes",
+        "config_url": "https://cdn.dashproxy.xyz/ipa/assembly/Silent/localConfig.json",
+        "sandbox_target": "Documents/Assembly-CSharp-patch.bytes"
+      },
+      {
+        "name": "Aim Assist",
+        "patch_url": "https://cdn.dashproxy.xyz/ipa/assembly/assist/Assembly-CSharp-patch.bytes",
+        "config_url": "https://cdn.dashproxy.xyz/ipa/assembly/assist/localConfig.json",
+        "sandbox_target": "Documents/Assembly-CSharp-patch.bytes"
+      },
+      {
+        "name": "ESP Box",
+        "patch_url": "https://cdn.dashproxy.xyz/ipa/assembly/box/Assembly-CSharp-patch.bytes",
+        "config_url": "https://cdn.dashproxy.xyz/ipa/assembly/box/localConfig.json",
+        "sandbox_target": "Documents/Assembly-CSharp-patch.bytes"
+      }
+    ],
+    "Holograms_and_Shaders": [
+      {
+        "name": "Hologram Red",
+        "url": "https://cdn.dashproxy.xyz/ipa/Hologram%20red/shaders.P0K3UG2TfecMBhWMMV~2Fu8ReudIk~3D",
+        "sandbox_target": "Library/Caches/shaders.P0K3UG2TfecMBhWMMV~2Fu8ReudIk~3D",
+        "backup_file": "_hologram_red_shaders.bak"
+      },
+      {
+        "name": "Holograma FF MAX (3D Gun)",
+        "url": "https://cdn.dashproxy.xyz/ipa/holograma-ffmax/shaders.RXqs706xmtWYhbN9TqDzP8LDRzk~3D",
+        "sandbox_target": "Library/Caches/shaders.RXqs706xmtWYhbN9TqDzP8LDRzk~3D",
+        "backup_file": "_hologram_red_shaders.bak"
+      },
+      {
+        "name": "Holograma Personagens",
+        "url": "https://cdn.dashproxy.xyz/ipa/holograma-personagens/optionalavatarres_commonab_shader.P6ptn~2F11cB9qve94hciM1I~2Bq0F0~3D",
+        "sandbox_target": "Library/Caches/optionalavatarres_commonab_shader.P6ptn~2F11cB9qve94hciM1I~2Bq0F0~3D",
+        "backup_file": "_hologram_characters_avatarres.bak"
+      }
+    ],
+    "Textures": [
+      {
+        "pattern": "https://cdn.dashproxy.xyz/ipa/texturas/%@/%@",
+        "sandbox_target": "Library/Caches/optionalab_avatar_66.DfUs7MzeaoXWJ4jWN8zRBmYoY7Q~3D",
+        "backup_file": "_texture_%ld_avatar.bak"
+      }
+    ]
+  }
+}
