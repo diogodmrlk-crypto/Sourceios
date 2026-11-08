@@ -1,4 +1,4 @@
-name: Build Unsigned IPA (Sourceios Dynamic)
+name: Build Unsigned IPA (Sourceios)
 
 on:
   push:
@@ -18,12 +18,18 @@ jobs:
         sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
         xcodebuild -version
 
-    # 1. Instala o XcodeGen (ferramenta que vai ler todas as pastas e gerar o projeto)
     - name: Install XcodeGen
-      run: |
-        brew install xcodegen
+      run: brew install xcodegen
 
-    # 2. Cria os arquivos de entrada (main e AppDelegate) se não existirem
+    # Patch nos placeholders "0x/*comment*/" que são C inválido
+    - name: Patch Kernel Placeholder Offsets
+      run: |
+        find . \( -name "*.c" -o -name "*.h" -o -name "*.m" -o -name "*.mm" \) -not -path "./.git/*" | while read f; do
+          sed -i '' -E 's|0x/\*|0x0 /*|g' "$f"
+        done
+        echo "=== Verification ==="
+        grep -n "0x0 /\*" Kernel/kexploit.c || echo "Nenhum placeholder substituido"
+
     - name: Create Entry Point (main.m & AppDelegate)
       run: |
         if [ ! -f main.m ]; then
@@ -69,14 +75,11 @@ jobs:
         EOF
         fi
 
-    # 3. Gera o projeto dinamicamente lendo TODAS as pastas e headers
     - name: Generate Xcode Project (Dynamic)
       run: |
-        # Descobre dinamicamente todas as pastas que contêm arquivos .h para não quebrar os #imports
         HEADER_PATHS=$(find . -name "*.h" -not -path "./.git/*" -exec dirname {} \; | sort -u | tr '\n' ' ')
-        echo "Caminhos de headers encontrados: $HEADER_PATHS"
+        echo "Header paths: $HEADER_PATHS"
 
-        # Cria o arquivo de configuração do XcodeGen
         cat > project.yml << EOF
         name: Sourceios
         options:
@@ -101,15 +104,16 @@ jobs:
                 excludes:
                   - ".github/**"
                   - ".git/**"
+                  - "README.md"
+                  - "project.yml"
+                  - "Payloads/**"
             settings:
               base:
                 PRODUCT_BUNDLE_IDENTIFIER: com.sourceios.app
         EOF
 
-        # Gera o .xcodeproj
         xcodegen generate
 
-    # 4. Compila o .ipa
     - name: Build and Archive (Unsigned)
       run: |
         xcodebuild archive \
