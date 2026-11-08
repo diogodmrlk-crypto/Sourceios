@@ -27,8 +27,25 @@ jobs:
         find . \( -name "*.c" -o -name "*.h" -o -name "*.m" -o -name "*.mm" \) -not -path "./.git/*" | while read f; do
           sed -i '' -E 's|0x/\*|0x0 /*|g' "$f"
         done
-        echo "=== Verification ==="
-        grep -n "0x0 /\*" Kernel/kexploit.c || echo "Nenhum placeholder substituido"
+        echo "=== Verificacao ==="
+        grep -rn "0x0 /\*" Kernel/ || echo "(nenhum placeholder)"
+
+    # Cria um prefix header global com imports comuns (UIKit, Foundation, etc.)
+    - name: Create Prefix Header
+      run: |
+        cat > SourceiosPrefix.pch << 'EOF'
+        #ifndef SourceiosPrefix_pch
+        #define SourceiosPrefix_pch
+
+        #ifdef __OBJC__
+        #import <Foundation/Foundation.h>
+        #import <UIKit/UIKit.h>
+        #import <Security/Security.h>
+        #import <CoreGraphics/CoreGraphics.h>
+        #endif
+
+        #endif
+        EOF
 
     - name: Create Entry Point (main.m & AppDelegate)
       run: |
@@ -95,6 +112,8 @@ jobs:
             INFOPLIST_KEY_UILaunchScreen_Generation: YES
             OTHER_LDFLAGS: "-framework Security -framework UIKit -framework IOKit -framework CoreGraphics"
             HEADER_SEARCH_PATHS: "\$(SRCROOT) $HEADER_PATHS"
+            GCC_PREFIX_HEADER: "\$(SRCROOT)/SourceiosPrefix.pch"
+            GCC_PRECOMPILE_PREFIX_HEADER: YES
         targets:
           Sourceios:
             type: application
@@ -106,6 +125,7 @@ jobs:
                   - ".git/**"
                   - "README.md"
                   - "project.yml"
+                  - "SourceiosPrefix.pch"
                   - "Payloads/**"
             settings:
               base:
@@ -133,7 +153,9 @@ jobs:
           GENERATE_INFOPLIST_FILE=YES \
           INFOPLIST_KEY_UIApplicationSceneManifest_Generation=NO \
           PRODUCT_BUNDLE_IDENTIFIER="com.sourceios.app" \
-          IPHONEOS_DEPLOYMENT_TARGET="14.0"
+          IPHONEOS_DEPLOYMENT_TARGET="14.0" \
+          GCC_PREFIX_HEADER="$PWD/SourceiosPrefix.pch" \
+          GCC_PRECOMPILE_PREFIX_HEADER=YES
 
     - name: Create Unsigned IPA
       run: |
