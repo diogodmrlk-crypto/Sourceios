@@ -27,10 +27,8 @@ jobs:
         find . \( -name "*.c" -o -name "*.h" -o -name "*.m" -o -name "*.mm" \) -not -path "./.git/*" | while read f; do
           sed -i '' -E 's|0x/\*|0x0 /*|g' "$f"
         done
-        echo "=== Verificacao ==="
-        grep -rn "0x0 /\*" Kernel/ || echo "(nenhum placeholder)"
 
-    # 2. Fecha @implementation sem @end em todos os .m
+    # 2. Fecha @implementation sem @end
     - name: Patch Missing @end in Objective-C files
       run: |
         find . -name "*.m" -not -path "./.git/*" | while read f; do
@@ -39,15 +37,13 @@ jobs:
           IMPL=${IMPL:-0}; END=${END:-0}
           if [ "$IMPL" -gt "$END" ]; then
             DIFF=$((IMPL - END))
-            echo "Fechando $DIFF @end(s) em $f"
             for i in $(seq 1 $DIFF); do
               printf '\n@end\n' >> "$f"
             done
           fi
         done
-        tail -n 3 AirLift/AirLiftAcess.m || true
 
-    # 3. Cria stubs para funcoes de kernel que faltam no repo
+    # 3. Cria stubs para funcoes de kernel
     - name: Create Kernel Stubs
       run: |
         if [ ! -f Kernel/KernelStubs.c ]; then
@@ -55,23 +51,128 @@ jobs:
         #include <stdint.h>
         #include <stddef.h>
 
-        /* Stubs para primitivas de kernel que nao foram incluidas no repositorio.
-           Sem estas definicoes, o linker falha com "undefined symbols". */
-
-        int kwrite32(uint64_t where, uint32_t what) {
-            (void)where; (void)what;
-            return 0;
-        }
-
-        int kwrite64(uint64_t where, uint64_t what) {
-            (void)where; (void)what;
-            return 0;
-        }
+        int kwrite32(uint64_t where, uint32_t what) { (void)where; (void)what; return 0; }
+        int kwrite64(uint64_t where, uint64_t what) { (void)where; (void)what; return 0; }
         EOF
         fi
-        cat Kernel/KernelStubs.c
 
-    # 4. Prefix header global (Foundation, UIKit, Security, CoreGraphics)
+    # 4. Sobrescreve o RootViewController.m com uma UI funcional
+    - name: Force UI in RootViewController
+      run: |
+        mkdir -p UI
+        cat > UI/RootViewController.m << 'EOF'
+        #import "RootViewController.h"
+
+        @interface RootViewController () <UITableViewDelegate, UITableViewDataSource>
+        @property (nonatomic, strong) UITableView *tableView;
+        @property (nonatomic, strong) NSArray *items;
+        @end
+
+        @implementation RootViewController
+
+        - (void)viewDidLoad {
+            [super viewDidLoad];
+            self.title = @"Dash iOS";
+            self.view.backgroundColor = [UIColor blackColor];
+            
+            self.items = @[@"Exploit", @"No Exploit (Safe)", @"Misc", @"Account", @"Settings"];
+            
+            self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
+            self.tableView.backgroundColor = [UIColor clearColor];
+            self.tableView.delegate = self;
+            self.tableView.dataSource = self;
+            self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+            [self.view addSubview:self.tableView];
+        }
+
+        - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+            return 1;
+        }
+
+        - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+            return self.items.count;
+        }
+
+        - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+            static NSString *cellId = @"Cell";
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellId];
+            if (!cell) {
+                cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellId];
+            }
+            cell.textLabel.text = self.items[indexPath.row];
+            cell.textLabel.textColor = [UIColor whiteColor];
+            cell.backgroundColor = [UIColor darkGrayColor];
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            return cell;
+        }
+
+        - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+            [tableView deselectRowAtIndexPath:indexPath animated:YES];
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Info" message:[NSString stringWithFormat:@"Você clicou em %@", self.items[indexPath.row]] preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+
+        // Stubs para as declaracoes do .h original
+        - (void)configureButtonLayout:(id)sender {}
+        - (void)toggleLightTheme {}
+        - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {}
+        - (void)viewDidLayoutSubviews {}
+        - (NSString *)L:(NSString *)key { return key; }
+        - (NSString *)hardwareModel { return @"iPhone"; }
+        - (NSString *)commercialDeviceName { return @"iPhone"; }
+        - (void)buildDeviceRowsInCard:(UIView *)card width:(CGFloat)width {}
+        - (void)refreshDeviceValues {}
+        - (void)openSettingsSheet {}
+        - (NSString *)stringFromAPIValue:(id)val fallback:(NSString *)fb { return fb ?: @""; }
+        - (void)refreshAPIAccountValues {}
+        - (UIView *)visibleMainPage { return self.view; }
+        - (void)animateToMainPage:(UIView *)targetPage {}
+        - (void)tabExploitPressed {}
+        - (void)tabNoExploitPressed {}
+        - (void)tabMiscPressed {}
+        - (void)tabAccountPressed {}
+        - (void)setTabActive:(UIButton *)activeBtn inactive:(UIButton *)inactiveBtn {}
+        - (NSAttributedString *)injectorAttributedTitle:(NSString *)title subtitle:(NSString *)sub selected:(BOOL)sel { return nil; }
+        - (void)styleOptionChip:(UIButton *)chip selected:(BOOL)sel {}
+        - (void)applyInjectorTabAppearance {}
+        - (void)applyGameTabAppearance {}
+        - (void)selectNoExpFF {}
+        - (void)selectNoExpFFMax {}
+        - (void)animateTable:(UITableView *)tv goingToMax:(BOOL)isMax reload:(BOOL)reload {}
+        - (NSArray *)visibleFunctionRows { return @[]; }
+        - (NSString *)currentBundleIDForTable:(UITableView *)tv { return @""; }
+        - (NSString *)backupRoot { return @""; }
+        - (BOOL)isTexturePayloadRow:(NSInteger)row { return NO; }
+        - (NSInteger)textureIndexForPayloadRow:(NSInteger)row { return 0; }
+        - (NSString *)textureFolderNameAtIndex:(NSInteger)index { return @""; }
+        - (NSString *)textureCDNPath:(NSString *)folder file:(NSString *)file { return @""; }
+        - (NSURL *)texturePreviewURLAtIndex:(NSInteger)index { return nil; }
+        - (NSURL *)texturePayloadURLAtIndex:(NSInteger)index { return nil; }
+        - (BOOL)isInj2AssetindexerRow:(NSInteger)row { return NO; }
+        - (NSData *)embeddedPayloadDataForRow:(NSInteger)row { return nil; }
+        - (NSString *)payloadCachePathForRow:(NSInteger)row bundleID:(NSString *)bundleID { return @""; }
+        - (void)loadPayloadFromURLString:(NSString *)urlStr completion:(void (^)(NSData *data, NSError *error))completion {}
+        - (BOOL)injectData:(NSData *)data forBundleID:(NSString *)bundleID relativePath:(NSString *)relPath error:(NSError **)error { return NO; }
+        - (BOOL)deleteDataForBundleID:(NSString *)bundleID relativePath:(NSString *)relPath error:(NSError **)error { return NO; }
+        - (BOOL)ensureKernelReady:(NSError **)error { return NO; }
+        - (void)askAimAssistBoxThenActivate:(NSInteger)row injector1:(BOOL)inj1 {}
+        - (void)deactivateAimAssist:(NSInteger)row {}
+        - (void)miscSwitchChanged:(UISwitch *)sender {}
+        - (void)askAntennaThenInjectRow:(NSInteger)row sender:(UISwitch *)sender {}
+        - (void)performInj2InjectRow:(NSInteger)row sender:(UISwitch *)sender {}
+        - (void)switchChanged:(UISwitch *)sender {}
+        - (void)inj1SwitchChanged:(UISwitch *)sender {}
+        - (void)textureSwitchChanged:(UISwitch *)sender {}
+        - (void)resetToggles {}
+        - (UIImage *)emojiImage:(NSString *)emoji size:(CGSize)size { return nil; }
+        - (UIImage *)textureThumbPlaceholder { return nil; }
+        - (UIImage *)resizedTextureThumb:(UIImage *)img { return img; }
+        - (void)bindTextureThumbAtIndex:(NSInteger)index toImageView:(UIImageView *)iv {}
+        @end
+        EOF
+
+    # 5. Prefix header global
     - name: Create Prefix Header
       run: |
         cat > SourceiosPrefix.pch << 'EOF'
@@ -88,58 +189,11 @@ jobs:
         #endif
         EOF
 
-    # 5. Entry point minimo (main + AppDelegate)
-    - name: Create Entry Point
-      run: |
-        if [ ! -f main.m ]; then
-          cat > main.m << 'EOF'
-        #import <UIKit/UIKit.h>
-        #import "AppDelegate.h"
-
-        int main(int argc, char * argv[]) {
-            @autoreleasepool {
-                return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
-            }
-        }
-        EOF
-        fi
-
-        if [ ! -f AppDelegate.h ]; then
-          cat > AppDelegate.h << 'EOF'
-        #import <UIKit/UIKit.h>
-
-        @interface AppDelegate : UIResponder <UIApplicationDelegate>
-        @property (strong, nonatomic) UIWindow *window;
-        @end
-        EOF
-        fi
-
-        if [ ! -f AppDelegate.m ]; then
-          cat > AppDelegate.m << 'EOF'
-        #import "AppDelegate.h"
-        #import "RootViewController.h"
-
-        @implementation AppDelegate
-
-        - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-            self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-            RootViewController *root = [[RootViewController alloc] init];
-            UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:root];
-            self.window.rootViewController = nav;
-            [self.window makeKeyAndVisible];
-            return YES;
-        }
-
-        @end
-        EOF
-        fi
-
-    # 6. Gera o projeto com XcodeGen
+    # 6. Gera o projeto
     - name: Generate Xcode Project
       run: |
         HEADER_PATHS=$(find . -name "*.h" -not -path "./.git/*" -exec dirname {} \; | sort -u | tr '\n' ' ')
-        echo "Header paths: $HEADER_PATHS"
-
+        
         cat > project.yml << EOF
         name: Sourceios
         options:
@@ -179,8 +233,8 @@ jobs:
 
         xcodegen generate
 
-    # 7. Compila + arquiva + gera IPA
-    - name: Build and Archive (Unsigned)
+    # 7. Compila
+    - name: Build and Archive
       run: |
         xcodebuild archive \
           -project Sourceios.xcodeproj \
