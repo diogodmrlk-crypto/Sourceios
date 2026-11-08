@@ -21,14 +21,12 @@ jobs:
     - name: Install XcodeGen
       run: brew install xcodegen
 
-    # 1. Patch "0x/*comment*/" -> "0x0 /*comment*/"
     - name: Patch Kernel Placeholder Offsets
       run: |
         find . \( -name "*.c" -o -name "*.h" -o -name "*.m" -o -name "*.mm" \) -not -path "./.git/*" | while read f; do
           sed -i '' -E 's|0x/\*|0x0 /*|g' "$f"
         done
 
-    # 2. Fecha @implementation sem @end
     - name: Patch Missing @end in Objective-C files
       run: |
         find . -name "*.m" -not -path "./.git/*" | while read f; do
@@ -43,7 +41,6 @@ jobs:
           fi
         done
 
-    # 3. Cria stubs para funcoes de kernel
     - name: Create Kernel Stubs
       run: |
         if [ ! -f Kernel/KernelStubs.c ]; then
@@ -56,7 +53,7 @@ jobs:
         EOF
         fi
 
-    # 4. Sobrescreve o RootViewController.m com uma UI funcional
+    # Sobrescreve o RootViewController.m com uma UI funcional e stubs completos
     - name: Force UI in RootViewController
       run: |
         mkdir -p UI
@@ -74,9 +71,7 @@ jobs:
             [super viewDidLoad];
             self.title = @"Dash iOS";
             self.view.backgroundColor = [UIColor blackColor];
-            
             self.items = @[@"Exploit", @"No Exploit (Safe)", @"Misc", @"Account", @"Settings"];
-            
             self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
             self.tableView.backgroundColor = [UIColor clearColor];
             self.tableView.delegate = self;
@@ -85,13 +80,8 @@ jobs:
             [self.view addSubview:self.tableView];
         }
 
-        - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-            return 1;
-        }
-
-        - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-            return self.items.count;
-        }
+        - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return 1; }
+        - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section { return self.items.count; }
 
         - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
             static NSString *cellId = @"Cell";
@@ -108,7 +98,7 @@ jobs:
 
         - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
             [tableView deselectRowAtIndexPath:indexPath animated:YES];
-            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Info" message:[NSString stringWithFormat:@"Você clicou em %@", self.items[indexPath.row]] preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Info" message:[NSString stringWithFormat:@"Voce clicou em %@", self.items[indexPath.row]] preferredStyle:UIAlertControllerStyleAlert];
             [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
             [self presentViewController:alert animated:YES completion:nil];
         }
@@ -169,10 +159,24 @@ jobs:
         - (UIImage *)textureThumbPlaceholder { return nil; }
         - (UIImage *)resizedTextureThumb:(UIImage *)img { return img; }
         - (void)bindTextureThumbAtIndex:(NSInteger)index toImageView:(UIImageView *)iv {}
+        - (void)applyLanguage {}
+        - (void)startAPIAuthentication {}
+        - (void)selectInjector1 {}
+        - (void)selectInjector2 {}
+        - (void)selectExpFF {}
+        - (void)selectExpFFMax {}
+        - (void)toggleExploitStart {}
+        - (NSString *)backupPathForBundleID:(NSString *)bundleID row:(NSInteger)row { return @""; }
+        - (NSString *)targetRelativePathForRow:(NSInteger)row bundleID:(NSString *)bundleID { return @""; }
+        - (NSURL *)payloadURLForRow:(NSInteger)row bundleID:(NSString *)bundleID { return nil; }
+        - (void)loadPayloadForRow:(NSInteger)row bundleID:(NSString *)bundleID completion:(void (^)(NSData *data, NSError *error))completion {}
+        - (BOOL)_writePayload:(NSData *)data toBundleID:(NSString *)bundleID relativePath:(NSString *)relPath error:(NSError **)error { return NO; }
+        - (BOOL)injectPayload:(NSData *)data forBundleID:(NSString *)bundleID row:(NSInteger)row error:(NSError **)error { return NO; }
+        - (BOOL)restorePayloadForBundleID:(NSString *)bundleID row:(NSInteger)row error:(NSError **)error { return NO; }
+        - (void)showAlert:(NSString *)title message:(NSString *)msg {}
         @end
         EOF
 
-    # 5. Prefix header global
     - name: Create Prefix Header
       run: |
         cat > SourceiosPrefix.pch << 'EOF'
@@ -189,7 +193,51 @@ jobs:
         #endif
         EOF
 
-    # 6. Gera o projeto
+    # Sobrescreve SEMPRE main.m, AppDelegate.h e AppDelegate.m
+    - name: Force Entry Point
+      run: |
+        cat > main.m << 'EOF'
+        #import <UIKit/UIKit.h>
+        #import "AppDelegate.h"
+
+        int main(int argc, char * argv[]) {
+            @autoreleasepool {
+                return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
+            }
+        }
+        EOF
+
+        cat > AppDelegate.h << 'EOF'
+        #import <UIKit/UIKit.h>
+
+        @interface AppDelegate : UIResponder <UIApplicationDelegate>
+        @property (strong, nonatomic) UIWindow *window;
+        @end
+        EOF
+
+        cat > AppDelegate.m << 'EOF'
+        #import "AppDelegate.h"
+        #import "RootViewController.h"
+
+        @implementation AppDelegate
+
+        - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+            self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+            RootViewController *root = [[RootViewController alloc] init];
+            UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:root];
+            self.window.rootViewController = nav;
+            [self.window makeKeyAndVisible];
+            return YES;
+        }
+
+        @end
+        EOF
+
+        echo "=== main.m ==="
+        cat main.m
+        echo "=== AppDelegate.m ==="
+        cat AppDelegate.m
+
     - name: Generate Xcode Project
       run: |
         HEADER_PATHS=$(find . -name "*.h" -not -path "./.git/*" -exec dirname {} \; | sort -u | tr '\n' ' ')
@@ -233,7 +281,6 @@ jobs:
 
         xcodegen generate
 
-    # 7. Compila
     - name: Build and Archive
       run: |
         xcodebuild archive \
