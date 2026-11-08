@@ -21,7 +21,7 @@ jobs:
     - name: Install XcodeGen
       run: brew install xcodegen
 
-    # Patch nos placeholders "0x/*comment*/" que são C inválido
+    # 1. Patch "0x/*comment*/" -> "0x0 /*comment*/"
     - name: Patch Kernel Placeholder Offsets
       run: |
         find . \( -name "*.c" -o -name "*.h" -o -name "*.m" -o -name "*.mm" \) -not -path "./.git/*" | while read f; do
@@ -30,7 +30,25 @@ jobs:
         echo "=== Verificacao ==="
         grep -rn "0x0 /\*" Kernel/ || echo "(nenhum placeholder)"
 
-    # Cria um prefix header global com imports comuns (UIKit, Foundation, etc.)
+    # 2. Fecha @implementation sem @end em todos os .m
+    - name: Patch Missing @end in Objective-C files
+      run: |
+        find . -name "*.m" -not -path "./.git/*" | while read f; do
+          IMPL=$(grep -c '^[[:space:]]*@implementation' "$f" || true)
+          END=$(grep -c '^[[:space:]]*@end' "$f" || true)
+          IMPL=${IMPL:-0}; END=${END:-0}
+          if [ "$IMPL" -gt "$END" ]; then
+            DIFF=$((IMPL - END))
+            echo "Fechando $DIFF @end(s) em $f (impl=$IMPL, end=$END)"
+            for i in $(seq 1 $DIFF); do
+              printf '\n@end\n' >> "$f"
+            done
+          fi
+        done
+        echo "=== Verificacao AirLift ==="
+        tail -n 5 AirLift/AirLiftAcess.m || true
+
+    # 3. Prefix header global (Foundation, UIKit, Security, CoreGraphics)
     - name: Create Prefix Header
       run: |
         cat > SourceiosPrefix.pch << 'EOF'
@@ -47,7 +65,8 @@ jobs:
         #endif
         EOF
 
-    - name: Create Entry Point (main.m & AppDelegate)
+    # 4. Entry point mínimo (main + AppDelegate) se não existirem
+    - name: Create Entry Point
       run: |
         if [ ! -f main.m ]; then
           cat > main.m << 'EOF'
@@ -92,7 +111,8 @@ jobs:
         EOF
         fi
 
-    - name: Generate Xcode Project (Dynamic)
+    # 5. Gera o projeto com XcodeGen (lê todas as pastas)
+    - name: Generate Xcode Project
       run: |
         HEADER_PATHS=$(find . -name "*.h" -not -path "./.git/*" -exec dirname {} \; | sort -u | tr '\n' ' ')
         echo "Header paths: $HEADER_PATHS"
@@ -114,6 +134,8 @@ jobs:
             HEADER_SEARCH_PATHS: "\$(SRCROOT) $HEADER_PATHS"
             GCC_PREFIX_HEADER: "\$(SRCROOT)/SourceiosPrefix.pch"
             GCC_PRECOMPILE_PREFIX_HEADER: YES
+            CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF: NO
+            CLANG_WARN_UNDECLARED_SELECTOR: NO
         targets:
           Sourceios:
             type: application
@@ -134,6 +156,7 @@ jobs:
 
         xcodegen generate
 
+    # 6. Compila + arquiva + gera IPA
     - name: Build and Archive (Unsigned)
       run: |
         xcodebuild archive \
